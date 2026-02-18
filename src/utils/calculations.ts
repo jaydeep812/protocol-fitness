@@ -43,8 +43,8 @@ export function calculateProteinPercentage(consumed: number, target: number): nu
 // ============================================
 
 /**
- * Get today's suggested workout type based on rotation
- * Uses a simple 4-day cycle: Push -> Pull -> Legs -> Rest
+ * Get today's suggested workout type based on 7-day rotation
+ * Cycle: Push → Pull → Legs → Push → Pull → Legs → Rest
  * 
  * The cycle starts from a reference date and rotates through
  */
@@ -58,8 +58,8 @@ export function getTodayWorkoutType(): WorkoutType {
   const diffTime = today.getTime() - referenceDate.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
-  // Get position in rotation (0-3)
-  const rotationIndex = ((diffDays % 4) + 4) % 4; // Handle negative modulo
+  // Get position in rotation (0-6 for 7-day cycle)
+  const rotationIndex = ((diffDays % 7) + 7) % 7; // Handle negative modulo
   
   return WORKOUT_ROTATION[rotationIndex];
 }
@@ -74,7 +74,7 @@ export function getWorkoutTypeForDate(date: Date): WorkoutType {
   const diffTime = date.getTime() - referenceDate.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
-  const rotationIndex = ((diffDays % 4) + 4) % 4;
+  const rotationIndex = ((diffDays % 7) + 7) % 7;
   
   return WORKOUT_ROTATION[rotationIndex];
 }

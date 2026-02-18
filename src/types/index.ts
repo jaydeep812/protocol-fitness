@@ -70,5 +70,6 @@ export const DEFAULT_NUTRITION_SETTINGS: NutritionSettings = {
   dailyProteinTarget: 180,
 };
 
-// Workout rotation (4-day cycle)
-export const WORKOUT_ROTATION: WorkoutType[] = ['Push', 'Pull', 'Legs', 'Rest'];
+// Workout rotation (7-day cycle)
+// Push → Pull → Legs → Push → Pull → Legs → Rest
+export const WORKOUT_ROTATION: WorkoutType[] = ['Push', 'Pull', 'Legs', 'Push', 'Pull', 'Legs', 'Rest'];

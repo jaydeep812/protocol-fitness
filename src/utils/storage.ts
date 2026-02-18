@@ -9,8 +9,10 @@ import type {
   NutritionEntry,
   WeightEntry,
   NutritionSettings,
+  WorkoutType,
 } from '../types';
 import { DEFAULT_NUTRITION_SETTINGS } from '../types';
+import type { WorkoutLog, SetLog } from '../types/templates';
 
 const STORAGE_KEY = 'protocol_fitness_data';
 
@@ -91,6 +93,82 @@ export function getWorkoutsByType(type: string): WorkoutEntry[] {
 export function getWorkoutByDate(date: string): WorkoutEntry | undefined {
   const data = getAppData();
   return data.workouts.find((w) => w.date === date);
+}
+
+// ============================================
+// Template-Based Workout Log Operations
+// ============================================
+
+const WORKOUT_LOGS_KEY = 'protocol_workout_logs';
+
+/**
+ * Get all workout logs
+ */
+export function getWorkoutLogs(): WorkoutLog[] {
+  try {
+    const data = localStorage.getItem(WORKOUT_LOGS_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading workout logs:', error);
+  }
+  return [];
+}
+
+/**
+ * Save workout log
+ */
+export function saveWorkoutLog(log: WorkoutLog): void {
+  const logs = getWorkoutLogs();
+  
+  // Check if log for this date already exists
+  const existingIndex = logs.findIndex((l) => l.date === log.date && l.type === log.type);
+  
+  if (existingIndex >= 0) {
+    logs[existingIndex] = log;
+  } else {
+    logs.push(log);
+  }
+  
+  try {
+    localStorage.setItem(WORKOUT_LOGS_KEY, JSON.stringify(logs));
+  } catch (error) {
+    console.error('Error saving workout log:', error);
+  }
+}
+
+/**
+ * Get workout log for a specific date and type
+ */
+export function getWorkoutLogByDateAndType(date: string, type: WorkoutType): WorkoutLog | undefined {
+  const logs = getWorkoutLogs();
+  return logs.find((l) => l.date === date && l.type === type);
+}
+
+/**
+ * Get previous workout log for a workout type (for comparison)
+ * Returns the most recent log before the given date
+ */
+export function getPreviousWorkoutLog(type: WorkoutType, beforeDate: string): WorkoutLog | undefined {
+  const logs = getWorkoutLogs();
+  const filteredLogs = logs
+    .filter((l) => l.type === type && l.date < beforeDate)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  return filteredLogs[0];
+}
+
+/**
+ * Get previous exercise data for comparison
+ * Returns the sets from the last logged workout for that exercise
+ */
+export function getPreviousExerciseData(exerciseId: string, type: WorkoutType, beforeDate: string): SetLog[] | undefined {
+  const previousLog = getPreviousWorkoutLog(type, beforeDate);
+  if (!previousLog) return undefined;
+  
+  const exercise = previousLog.exercises.find((e) => e.exerciseId === exerciseId);
+  return exercise?.sets;
 }
 
 // ============================================
