@@ -41,8 +41,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           Header Section
           ============================================ */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Protocol</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">Jay's Protocol</h1>
         <p className="text-gray-400 text-sm">{todayDate}</p>
+        <p className="text-green-400/80 text-xs mt-2 italic">"Discipline is choosing between what you want now and what you want most."</p>
       </div>
       
       {/* ============================================

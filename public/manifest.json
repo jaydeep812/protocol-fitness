@@ -1,7 +1,7 @@
 {
-  "name": "Protocol",
-  "short_name": "Protocol",
-  "description": "Track workouts, nutrition, and bodyweight",
+  "name": "Jay's Protocol",
+  "short_name": "Jay's Protocol",
+  "description": "Jay's fitness tracking app",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f0f",
