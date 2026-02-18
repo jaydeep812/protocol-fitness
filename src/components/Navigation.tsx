@@ -53,7 +53,7 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 py-2 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#0f0f0f] border-t border-[#2a2a2a] px-4 pt-2 z-50" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
       <div className="max-w-lg mx-auto">
         <div className="flex justify-around items-center">
           {navItems.map((item) => (
@@ -74,9 +74,6 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
           ))}
         </div>
       </div>
-      
-      {/* Safe area padding for mobile devices */}
-      <div className="h-safe-area-inset-bottom" />
     </nav>
   );
 }
