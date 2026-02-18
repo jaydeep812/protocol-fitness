@@ -20,9 +20,12 @@ import {
   getTodayDate,
   generateId,
   formatDate,
-  getNutritionSettings,
+  getMealLogsForDays,
+  getNutritionTargets,
 } from '../utils/storage';
-import { calculateProtein, calculateWeeklyAverage } from '../utils/calculations';
+import { calculateWeeklyAverage } from '../utils/calculations';
+import { calculateTotalMacros } from '../types/mealTemplates';
+import type { MealLogEntry } from '../types/mealTemplates';
 
 export default function Stats() {
   // ============================================
@@ -35,17 +38,52 @@ export default function Stats() {
   
   // Weekly stats
   const weeklyStats = useMemo(() => getWeeklyStats(), []);
-  const dailyTarget = useMemo(() => getNutritionSettings().dailyProteinTarget, []);
+  const targets = useMemo(() => getNutritionTargets(), []);
   
-  // Calculate average protein from nutrition entries
-  const avgProtein = useMemo(() => {
-    if (weeklyStats.nutritionEntries.length === 0) return 0;
-    const total = weeklyStats.nutritionEntries.reduce(
-      (sum, entry) => sum + calculateProtein(entry),
-      0
-    );
-    return Math.round(total / weeklyStats.nutritionEntries.length);
-  }, [weeklyStats.nutritionEntries]);
+  // Get meal logs for the week
+  const weeklyMealLogs = useMemo(() => getMealLogsForDays(7), []);
+  
+  // Calculate nutrition stats from meal logs
+  const nutritionStats = useMemo(() => {
+    // Group logs by date
+    const logsByDate = weeklyMealLogs.reduce((acc, log) => {
+      if (!acc[log.date]) acc[log.date] = [];
+      acc[log.date].push(log);
+      return acc;
+    }, {} as Record<string, MealLogEntry[]>);
+    
+    const dates = Object.keys(logsByDate);
+    const daysWithLogs = dates.length;
+    
+    if (daysWithLogs === 0) {
+      return {
+        avgProtein: 0,
+        avgCalories: 0,
+        daysHitProtein: 0,
+        daysHitCalories: 0,
+      };
+    }
+    
+    let totalProtein = 0;
+    let totalCalories = 0;
+    let daysHitProtein = 0;
+    let daysHitCalories = 0;
+    
+    dates.forEach(date => {
+      const dayMacros = calculateTotalMacros(logsByDate[date]);
+      totalProtein += dayMacros.protein;
+      totalCalories += dayMacros.calories;
+      if (dayMacros.protein >= targets.protein) daysHitProtein++;
+      if (dayMacros.calories >= targets.calories * 0.9) daysHitCalories++; // 90% threshold
+    });
+    
+    return {
+      avgProtein: Math.round(totalProtein / daysWithLogs),
+      avgCalories: Math.round(totalCalories / daysWithLogs),
+      daysHitProtein,
+      daysHitCalories,
+    };
+  }, [weeklyMealLogs, targets]);
   
   // Weekly average weight
   const weeklyAvgWeight = useMemo(
@@ -149,12 +187,12 @@ export default function Stats() {
               <p className="text-gray-400 text-xs mb-2">Avg Protein</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold text-white">
-                  {avgProtein || '--'}
+                  {nutritionStats.avgProtein || '--'}
                 </span>
                 <span className="text-gray-400 text-sm">g/day</span>
               </div>
               <p className="text-xs mt-2 text-gray-500">
-                Target: {dailyTarget}g
+                Target: {targets.protein}g
               </p>
             </div>
             
@@ -172,20 +210,18 @@ export default function Stats() {
               </p>
             </div>
             
-            {/* Total Sessions */}
+            {/* Average Calories */}
             <div className="bg-[#1f1f1f] rounded-2xl p-4 border border-[#2a2a2a]">
-              <p className="text-gray-400 text-xs mb-2">Sessions</p>
+              <p className="text-gray-400 text-xs mb-2">Avg Calories</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold text-white">
-                  {weeklyStats.totalSessions}
+                  {nutritionStats.avgCalories || '--'}
                 </span>
-                <span className="text-gray-400 text-sm">logged</span>
+                <span className="text-gray-400 text-sm">kcal</span>
               </div>
-              <div className="mt-2 text-cyan-400">
-                <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
+              <p className="text-xs mt-2 text-gray-500">
+                Target: {targets.calories}
+              </p>
             </div>
           </div>
           
@@ -196,9 +232,13 @@ export default function Stats() {
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Protein Target Hit</span>
                 <span className="text-white font-medium">
-                  {weeklyStats.nutritionEntries.filter(
-                    n => calculateProtein(n) >= dailyTarget
-                  ).length}/7 days
+                  {nutritionStats.daysHitProtein}/7 days
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Calorie Target Hit</span>
+                <span className="text-white font-medium">
+                  {nutritionStats.daysHitCalories}/7 days
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -208,14 +248,9 @@ export default function Stats() {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-400">Weight Entries</span>
+                <span className="text-gray-400">Meals Logged</span>
                 <span className="text-white font-medium">
-                  {weights.filter(w => {
-                    const date = new Date(w.date);
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    return date >= weekAgo;
-                  }).length} this week
+                  {weeklyMealLogs.length} this week
                 </span>
               </div>
             </div>

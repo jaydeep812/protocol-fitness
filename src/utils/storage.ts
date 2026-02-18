@@ -13,6 +13,8 @@ import type {
 } from '../types';
 import { DEFAULT_NUTRITION_SETTINGS } from '../types';
 import type { WorkoutLog, SetLog } from '../types/templates';
+import type { MealLogEntry, NutritionTargets } from '../types/mealTemplates';
+import { DEFAULT_NUTRITION_TARGETS } from '../types/mealTemplates';
 
 const STORAGE_KEY = 'protocol_fitness_data';
 
@@ -216,6 +218,109 @@ export function updateNutritionSettings(settings: NutritionSettings): void {
 export function getNutritionSettings(): NutritionSettings {
   const data = getAppData();
   return data.nutritionSettings || DEFAULT_NUTRITION_SETTINGS;
+}
+
+// ============================================
+// Meal Log Operations (Template-Based)
+// ============================================
+
+const MEAL_LOGS_KEY = 'protocol_meal_logs';
+const NUTRITION_TARGETS_KEY = 'protocol_nutrition_targets';
+
+/**
+ * Get all meal logs
+ */
+export function getMealLogs(): MealLogEntry[] {
+  try {
+    const data = localStorage.getItem(MEAL_LOGS_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading meal logs:', error);
+  }
+  return [];
+}
+
+/**
+ * Save a meal log entry
+ */
+export function saveMealLog(log: MealLogEntry): void {
+  const logs = getMealLogs();
+  logs.push(log);
+  
+  try {
+    localStorage.setItem(MEAL_LOGS_KEY, JSON.stringify(logs));
+  } catch (error) {
+    console.error('Error saving meal log:', error);
+  }
+}
+
+/**
+ * Delete a meal log entry by ID
+ */
+export function deleteMealLog(logId: string): void {
+  const logs = getMealLogs();
+  const filtered = logs.filter(l => l.id !== logId);
+  
+  try {
+    localStorage.setItem(MEAL_LOGS_KEY, JSON.stringify(filtered));
+  } catch (error) {
+    console.error('Error deleting meal log:', error);
+  }
+}
+
+/**
+ * Get meal logs for a specific date
+ */
+export function getMealLogsByDate(date: string): MealLogEntry[] {
+  const logs = getMealLogs();
+  return logs.filter(l => l.date === date).sort(
+    (a, b) => new Date(a.loggedAt).getTime() - new Date(b.loggedAt).getTime()
+  );
+}
+
+/**
+ * Get meal logs for the last N days
+ */
+export function getMealLogsForDays(days: number): MealLogEntry[] {
+  const logs = getMealLogs();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - (days - 1));
+  
+  return logs.filter(l => {
+    const logDate = new Date(l.date);
+    return logDate >= startDate && logDate <= today;
+  });
+}
+
+/**
+ * Get nutrition targets
+ */
+export function getNutritionTargets(): NutritionTargets {
+  try {
+    const data = localStorage.getItem(NUTRITION_TARGETS_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading nutrition targets:', error);
+  }
+  return DEFAULT_NUTRITION_TARGETS;
+}
+
+/**
+ * Save nutrition targets
+ */
+export function saveNutritionTargets(targets: NutritionTargets): void {
+  try {
+    localStorage.setItem(NUTRITION_TARGETS_KEY, JSON.stringify(targets));
+  } catch (error) {
+    console.error('Error saving nutrition targets:', error);
+  }
 }
 
 // ============================================
