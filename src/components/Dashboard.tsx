@@ -6,7 +6,7 @@
 import { useMemo } from 'react';
 import {
   calculateStreak,
-  getWeeklyCompletion,
+  getMonthlyCompletion,
   getLatestWeight,
   formatDateLong,
   getTodayDate,
@@ -26,14 +26,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const workoutType = useMemo(() => getTodayWorkoutType(), []);
   const streak = useMemo(() => calculateStreak(), []);
   const latestWeight = useMemo(() => getLatestWeight(), []);
-  const weeklyCompletion = useMemo(() => getWeeklyCompletion(), []);
+  const monthlyCompletion = useMemo(() => getMonthlyCompletion(), []);
   
-  // Day labels for weekly view
-  const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  
-  // Get current day index (0 = Monday)
-  const today = new Date();
-  const currentDayIndex = (today.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+  // Count completed days this month
+  const completedDays = monthlyCompletion.filter(d => d.completed).length;
   
   return (
     <div className="p-4 pb-24 space-y-4">
@@ -125,33 +121,27 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
       
       {/* ============================================
-          Weekly Completion Bar
+          Monthly Streak Calendar (30 days)
           ============================================ */}
       <div className="bg-[#1f1f1f] rounded-2xl p-4 border border-[#2a2a2a]">
-        <p className="text-gray-400 text-xs mb-3">This Week</p>
-        <div className="flex justify-between gap-2">
-          {weeklyCompletion.map((completed, index) => (
-            <div key={index} className="flex-1 flex flex-col items-center gap-2">
-              <div 
-                className={`w-full h-10 rounded-lg flex items-center justify-center ${
-                  completed 
-                    ? 'bg-green-500' 
-                    : index === 6 - (6 - currentDayIndex)
-                      ? 'bg-[#2a2a2a] border-2 border-green-500/50'
-                      : 'bg-[#2a2a2a]'
-                }`}
-              >
-                {completed && (
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className={`text-xs ${
-                index === currentDayIndex ? 'text-green-400 font-bold' : 'text-gray-500'
-              }`}>
-                {dayLabels[index]}
-              </span>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-gray-400 text-xs">Last 30 Days</p>
+          <p className="text-green-400 text-xs font-medium">{completedDays} workouts</p>
+        </div>
+        <div className="grid grid-cols-10 gap-1.5">
+          {monthlyCompletion.map((day, index) => (
+            <div 
+              key={index}
+              className={`aspect-square rounded-md flex items-center justify-center text-[10px] ${
+                day.completed 
+                  ? 'bg-green-500 text-white font-medium' 
+                  : day.isToday
+                    ? 'bg-[#2a2a2a] border border-green-500/50 text-gray-400'
+                    : 'bg-[#2a2a2a] text-gray-600'
+              }`}
+              title={day.date}
+            >
+              {day.dayOfMonth}
             </div>
           ))}
         </div>

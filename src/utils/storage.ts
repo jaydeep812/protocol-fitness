@@ -423,6 +423,40 @@ export function getWeeklyCompletion(): boolean[] {
 }
 
 /**
+ * Get monthly completion data (last 30 days)
+ * Returns array of { date, dayOfMonth, completed, isToday }
+ */
+export function getMonthlyCompletion(): { date: string; dayOfMonth: number; completed: boolean; isToday: boolean }[] {
+  const data = getAppData();
+  const workoutLogs = getWorkoutLogs();
+  
+  // Combine old workout dates and new workout log dates
+  const workoutDates = new Set([
+    ...data.workouts.map((w) => w.date),
+    ...workoutLogs.map((l) => l.date),
+  ]);
+  
+  const result: { date: string; dayOfMonth: number; completed: boolean; isToday: boolean }[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0];
+  
+  for (let i = 29; i >= 0; i--) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dateStr = checkDate.toISOString().split('T')[0];
+    result.push({
+      date: dateStr,
+      dayOfMonth: checkDate.getDate(),
+      completed: workoutDates.has(dateStr),
+      isToday: dateStr === todayStr,
+    });
+  }
+  
+  return result;
+}
+
+/**
  * Get weekly stats for overview
  */
 export function getWeeklyStats() {
