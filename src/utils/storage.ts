@@ -423,10 +423,34 @@ export function getWeeklyCompletion(): boolean[] {
 }
 
 /**
- * Get monthly completion data (last 30 days)
- * Returns array of { date, dayOfMonth, completed, isToday }
+ * Get date in Indian timezone (IST - UTC+5:30)
  */
-export function getMonthlyCompletion(): { date: string; dayOfMonth: number; completed: boolean; isToday: boolean }[] {
+export function getIndianDate(): Date {
+  const now = new Date();
+  // Convert to IST by adding 5:30 hours to UTC
+  const istOffset = 5.5 * 60 * 60 * 1000; // 5:30 in milliseconds
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  return new Date(utc + istOffset);
+}
+
+/**
+ * Get today's date string in Indian timezone (YYYY-MM-DD)
+ */
+export function getTodayDateIST(): string {
+  const ist = getIndianDate();
+  return ist.toISOString().split('T')[0];
+}
+
+/**
+ * Get current month calendar data (Indian timezone)
+ * Returns { monthName, year, days: array of day data, startDayOffset }
+ */
+export function getCurrentMonthCalendar(): {
+  monthName: string;
+  year: number;
+  days: { date: string; dayOfMonth: number; completed: boolean; isToday: boolean; isFuture: boolean }[];
+  startDayOffset: number;
+} {
   const data = getAppData();
   const workoutLogs = getWorkoutLogs();
   
@@ -436,24 +460,45 @@ export function getMonthlyCompletion(): { date: string; dayOfMonth: number; comp
     ...workoutLogs.map((l) => l.date),
   ]);
   
-  const result: { date: string; dayOfMonth: number; completed: boolean; isToday: boolean }[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split('T')[0];
+  // Get current date in IST
+  const todayIST = getIndianDate();
+  const todayStr = getTodayDateIST();
   
-  for (let i = 29; i >= 0; i--) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split('T')[0];
-    result.push({
+  const year = todayIST.getFullYear();
+  const month = todayIST.getMonth();
+  
+  // Get month name
+  const monthName = todayIST.toLocaleString('en-IN', { month: 'long' });
+  
+  // Get first day of month and number of days
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  
+  // Get what day of week the 1st falls on (0 = Sunday, convert to Monday = 0)
+  const firstDayOfWeek = (firstDay.getDay() + 6) % 7; // Monday = 0
+  
+  const days: { date: string; dayOfMonth: number; completed: boolean; isToday: boolean; isFuture: boolean }[] = [];
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const isFuture = dateStr > todayStr;
+    
+    days.push({
       date: dateStr,
-      dayOfMonth: checkDate.getDate(),
+      dayOfMonth: day,
       completed: workoutDates.has(dateStr),
       isToday: dateStr === todayStr,
+      isFuture,
     });
   }
   
-  return result;
+  return {
+    monthName,
+    year,
+    days,
+    startDayOffset: firstDayOfWeek,
+  };
 }
 
 /**

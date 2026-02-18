@@ -6,10 +6,10 @@
 import { useMemo } from 'react';
 import {
   calculateStreak,
-  getMonthlyCompletion,
+  getCurrentMonthCalendar,
   getLatestWeight,
   formatDateLong,
-  getTodayDate,
+  getTodayDateIST,
 } from '../utils/storage';
 import { getTodayWorkoutType } from '../utils/calculations';
 
@@ -22,14 +22,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   // Data Fetching
   // ============================================
   
-  const todayDate = useMemo(() => formatDateLong(getTodayDate()), []);
+  const todayDate = useMemo(() => formatDateLong(getTodayDateIST()), []);
   const workoutType = useMemo(() => getTodayWorkoutType(), []);
   const streak = useMemo(() => calculateStreak(), []);
   const latestWeight = useMemo(() => getLatestWeight(), []);
-  const monthlyCompletion = useMemo(() => getMonthlyCompletion(), []);
+  const monthCalendar = useMemo(() => getCurrentMonthCalendar(), []);
   
   // Count completed days this month
-  const completedDays = monthlyCompletion.filter(d => d.completed).length;
+  const completedDays = monthCalendar.days.filter(d => d.completed).length;
+  
+  // Day labels for calendar header
+  const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   
   return (
     <div className="p-4 pb-24 space-y-4">
@@ -121,23 +124,42 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
       
       {/* ============================================
-          Monthly Streak Calendar (30 days)
+          Monthly Calendar (Current Month - IST)
           ============================================ */}
       <div className="bg-[#1f1f1f] rounded-2xl p-4 border border-[#2a2a2a]">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-gray-400 text-xs">Last 30 Days</p>
+          <p className="text-white font-medium">{monthCalendar.monthName} {monthCalendar.year}</p>
           <p className="text-green-400 text-xs font-medium">{completedDays} workouts</p>
         </div>
-        <div className="grid grid-cols-10 gap-1.5">
-          {monthlyCompletion.map((day, index) => (
+        
+        {/* Day labels */}
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {dayLabels.map((label, index) => (
+            <div key={index} className="text-center text-[10px] text-gray-500 py-1">
+              {label}
+            </div>
+          ))}
+        </div>
+        
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {/* Empty cells for offset */}
+          {Array.from({ length: monthCalendar.startDayOffset }).map((_, index) => (
+            <div key={`empty-${index}`} className="aspect-square" />
+          ))}
+          
+          {/* Day cells */}
+          {monthCalendar.days.map((day, index) => (
             <div 
               key={index}
               className={`aspect-square rounded-md flex items-center justify-center text-[10px] ${
                 day.completed 
                   ? 'bg-green-500 text-white font-medium' 
                   : day.isToday
-                    ? 'bg-[#2a2a2a] border border-green-500/50 text-gray-400'
-                    : 'bg-[#2a2a2a] text-gray-600'
+                    ? 'bg-[#2a2a2a] border border-green-500/50 text-green-400 font-medium'
+                    : day.isFuture
+                      ? 'bg-transparent text-gray-700'
+                      : 'bg-[#2a2a2a] text-gray-500'
               }`}
               title={day.date}
             >
